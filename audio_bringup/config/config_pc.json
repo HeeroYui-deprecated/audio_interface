@@ -1,0 +1,26 @@
+{
+	speaker:{
+		io:'output',
+		map-on:{
+			interface:'auto',
+			name:'default',
+			timestamp-mode:'trigered',
+		},
+		frequency:0,
+		channel-map:['front-left', 'front-right'],
+		type:'auto',
+		nb-chunk:1024,
+	},
+	microphone:{
+		io:'input',
+		map-on:{
+			interface:'auto',
+			name:'default',
+			timestamp-mode:'trigered',
+		},
+		frequency:0,
+		channel-map:['front-left', 'front-right'],
+		type:'auto',
+		nb-chunk:1024
+	}
+}

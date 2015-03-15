@@ -1,0 +1,10 @@
+# decriptive flow type
+string typeFlow
+# speaker timestamp playing request (0 to As soon as possible)
+time stamp
+# data frequency
+int32 frequency
+# channel order of the current buffer
+uint8[] channelMap
+---
+int64 handle

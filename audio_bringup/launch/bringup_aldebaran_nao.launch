@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Nao Diagnostics -->
+	<node pkg="audio_core" type="audio_core_node" name="audio" args="--hardware=$(find audio_bringup)/config/config_aldebaran_nao.json"/>
+</launch>

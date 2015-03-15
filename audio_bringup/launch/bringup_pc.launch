@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="audio_core" type="audio_core_node" name="audio" args="--hardware=$(find audio_bringup)/config/config_pc.json"/>
+</launch>

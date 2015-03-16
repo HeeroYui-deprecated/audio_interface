@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-	<name>test_audio_recorder</name>
+	<name>test_audio_generator</name>
 	<version>0.0.1</version>
-	<description>Generic Audio Recorder</description>
+	<description>Generic sinus generator</description>
 	<maintainer email="yui.heero@gmail.com">Edouard DUPIN</maintainer>
 	<license>Apache-2.0</license>
 	
@@ -11,14 +11,12 @@
 	<build_depend>message_generation</build_depend>
 	<build_depend>roscpp</build_depend>
 	<build_depend>std_msgs</build_depend>
+	<build_depend>audio_core</build_depend>
 	<build_depend>audio_msg</build_depend>
-	<build_depend>audio</build_depend>
 	
 	<run_depend>message_runtime</run_depend>
 	<run_depend>roscpp</run_depend>
 	<run_depend>std_msgs</run_depend>
 	<run_depend>audio_core</run_depend>
 	<run_depend>audio_msg</run_depend>
-	<run_depend>audio</run_depend>
-	
 </package>

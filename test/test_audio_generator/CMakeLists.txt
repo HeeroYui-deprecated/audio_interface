@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(test_audio_recorder)
+project(test_audio_generator)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -11,13 +11,15 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
-  audio
 )
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-catkin_package()
+###################################
+## catkin specific configuration ##
+###################################
+catkin_package(
+  CATKIN_DEPENDS roscpp std_msgs
+  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -25,7 +27,6 @@ catkin_package()
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )

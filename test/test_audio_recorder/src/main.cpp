@@ -1,5 +1,7 @@
 #include "ros/ros.h"
 #include "audio_msg/AudioBuffer.h"
+#include <audio/format.h>
+#include <audio/channel.h>
 
 #include <sstream>
 
@@ -7,9 +9,12 @@ FILE* filee = NULL;
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
-void audioCallback(const audio_msg::AudioBuffer::ConstPtr& msg) {
-	fwrite(&msg->data[0] , sizeof(int16_t), msg->data.size(), filee);
-	ROS_INFO_STREAM("get message: freq=" << msg->frequency << " nbChannel=" << msg->channelMap.size() << " nbSample=" << msg->data.size()/msg->channelMap.size());
+void audioCallback(const audio_msg::AudioBuffer::ConstPtr& _msg) {
+	audio::format format = audio::convertFormat(_msg->channelFormat);
+	int32_t nbByteSample = audio::getFormatBytes(format);
+	std::vector<enum audio::channel> channel = audio::convertChannel(_msg->channelMap);
+	fwrite(&_msg->data[0], nbByteSample, _msg->data.size()/nbByteSample, filee);
+	ROS_INFO_STREAM("get message: freq=" << _msg->frequency << " nbChannel=" << channel << " nbSample=" << _msg->data.size()/(_msg->channelMap.size()*nbByteSample) << " format=" << format);
 }
 
 void usage() {

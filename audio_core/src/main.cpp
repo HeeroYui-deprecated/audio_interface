@@ -13,279 +13,9 @@
 #include <sstream>
 #include "debug.h"
 #include <etk/stdTools.h>
+#include <etk/tool.h>
 
-ros::Time startTime;
-/*
-static const double delayTimeBeforRemoveOutput = 30.0; // 30 second delay befor removing output that not create sound.
-
-class IOPorperty {
-	public:
-		float frequencyIn;
-		float frequencyOut;
-		std::vector<uint8_t> inputChannelMap;
-		std::vector<uint8_t> outputChannelMap;
-};
-IOPorperty audioProperties;
-
-
-class InterfacePorperty {
-	public:
-		int64_t uid;
-		std::string descriptiveString;
-		float frequency;
-		std::vector<uint8_t> channelMap;
-		std::vector<int16_t> data;
-		double playTime;
-		double requestTime;
-		InterfacePorperty():
-		  uid(0),
-		  frequency(0),
-		  playTime(0),
-		  requestTime(0) {
-			static int64_t suid = 25;
-			uid = suid++;
-		}
-};
-
-std::vector<InterfacePorperty> listFlow;
-*/
-std11::mutex mutex;
-/*
-// RT audio input callback
-int inoutInput(void* _outputBuffer,
-               void* _inputBuffer,
-               unsigned int _nBufferFrames,
-               double _streamTime,
-               RtAudioStreamStatus _status,
-               void* _data) {
-	IOPorperty* audioProperty = (IOPorperty*)_data;
-	// Since the number of input and output channels is equal, we can do
-	// a simple buffer copy operation here.
-	if (_status) {
-		ROS_ERROR("Stream overflow detected.");
-	}
-	// check if someone suscribe to the output:
-	if (stream_microphone.getNumSubscribers() > 0) {
-		//ROS_INFO("Publish data ... %d frames time %lf", _nBufferFrames, _streamTime);
-		audio_msg::AudioBuffer msg;
-		// create the Ros timestamp
-		msg.header.stamp = startTime + ros::Duration(_streamTime, (_streamTime-(int32_t)_streamTime)*1000000000.0);
-		// set message frequency
-		msg.frequency = audioProperty->frequencyIn;
-		// set channel mas properties
-		msg.channelMap = audioProperty->inputChannelMap;
-		// copy data:
-		msg.data.resize(_nBufferFrames*audioProperty->inputChannelMap.size());
-		memcpy(&msg.data[0], _inputBuffer, _nBufferFrames*audioProperty->inputChannelMap.size()*sizeof(int16_t));
-		// publish message
-		stream_microphone.publish(msg);
-	}
-	return 0;
-}
-
-// RT audio out callback
-int inoutOutput(void* _outputBuffer,
-                void* _inputBuffer,
-                unsigned int _nBufferFrames,
-                double _streamTime,
-                RtAudioStreamStatus _status,
-                void* _data) {
-	IOPorperty* audioProperty = (IOPorperty*)_data;
-	// Since the number of input and output channels is equal, we can do
-	// a simple buffer copy operation here.
-	if (_status) {
-		ROS_ERROR("Stream underflow detected.");
-	}
-	std::vector<int32_t> output;
-	int32_t newsize = (int64_t)audioProperty->outputChannelMap.size()*(int64_t)_nBufferFrames;
-	//ROS_INFO("read %d*%d=%d ", audioProperty->outputChannelMap.size(), _nBufferFrames, newsize);
-	output.resize(newsize, 0);
-	mutex.lock();
-	std::vector<InterfacePorperty>::iterator it = listFlow.begin();
-	while (it != listFlow.end()) {
-		// copy data...
-		size_t availlable = it->data.size();
-		availlable = availlable<output.size()?availlable:output.size();
-		if (availlable > 0) {
-			for (size_t iii=0; iii<availlable; ++iii) {
-				output[iii] += it->data[iii];
-			}
-			//ROS_INFO("write %ld (better have : %ld)", availlable, output.size());
-			it->data.erase(it->data.begin(), it->data.begin()+availlable);
-			it->playTime = _streamTime;
-		} else {
-			ROS_INFO("[%d] underflow %d", (int)it->uid, (int)output.size());
-			if (it->playTime <= 0) {
-				double delay = it->playTime + _streamTime;
-				if (delay > delayTimeBeforRemoveOutput) {
-					ROS_ERROR("[%d] underflow ==> too much : Remove interface (after %lf s)", (int)it->uid, delay);
-					it = listFlow.erase(it);
-					continue;
-				}
-			} else {
-				it->playTime = -_streamTime;
-			}
-		}
-		++it;
-	}
-	mutex.unlock();
-	if (_outputBuffer == NULL) {
-		ROS_ERROR("NULL output");
-		return 0;
-	}
-	int16_t* outputPointer = (int16_t*)_outputBuffer;
-	for (size_t iii=0; iii<output.size(); ++iii) {
-		*outputPointer++ = output[iii]>32767?32767:(output[iii]<-32767?-32767:(int16_t)output[iii]);
-	}
-	// check if someone is connected
-	if (stream_speaker.getNumSubscribers() > 0) {
-		//ROS_INFO("Get data ... %d frames time %lf", _nBufferFrames, _streamTime);
-		audio_msg::AudioBuffer msg;
-		// Create the ROS message time
-		msg.header.stamp = startTime + ros::Duration(_streamTime, (_streamTime-(int32_t)_streamTime)*1000000000.0);
-		// set message frequency
-		msg.frequency = audioProperty->frequencyOut;
-		// set channel mas properties
-		msg.channelMap = audioProperty->outputChannelMap;
-		// copy data:
-		msg.data.resize(_nBufferFrames*audioProperty->outputChannelMap.size());
-		memcpy(&msg.data[0], _outputBuffer, _nBufferFrames*audioProperty->outputChannelMap.size()*sizeof(int16_t));
-		// publish message
-		stream_speaker.publish(msg);
-	}
-	return 0;
-}
-*/
-
-bool f_create(audio_core::create::Request &req,
-              audio_core::create::Response &res) {
-	/*
-	InterfacePorperty newInterface;
-	newInterface.descriptiveString = req.typeFlow;
-	newInterface.frequency = req.frequency;
-	newInterface.channelMap = req.channelMap;
-	double requestTime = (double)req.stamp.sec + (double)req.stamp.nsec*0.0000000001;
-	newInterface.requestTime = requestTime;
-	newInterface.playTime = 0.0;
-	res.handle = newInterface.uid;
-	mutex.lock();
-	listFlow.push_back(newInterface);
-	mutex.unlock();
-	ROS_INFO("create : [%d] type : %s", (int)res.handle, req.typeFlow.c_str());
-	*/
-	return true;
-}
-
-bool f_remove(audio_core::remove::Request &req,
-              audio_core::remove::Response &res) {
-	/*
-	mutex.lock();
-	std::vector<InterfacePorperty>::iterator it = listFlow.begin();
-	while (it != listFlow.end()) {
-		if (it->uid == req.handle) {
-			it = listFlow.erase(it);
-		} else {
-			++it;
-		}
-	}
-	mutex.unlock();
-	ROS_INFO("remove : [%d]", (int)req.handle);
-	*/
-	return true;
-}
-
-
-bool f_write(audio_core::write::Request &req,
-             audio_core::write::Response &res) {
-	//ROS_INFO("write : [%ld] nbSample=%d", req.handle, (int32_t)req.data.size());
-	/*
-	mutex.lock();
-	std::vector<InterfacePorperty>::iterator it = listFlow.begin();
-	while (it != listFlow.end()) {
-		if (it->uid == req.handle) {
-			std::vector<int16_t> data = convert(it->channelMap, it->frequency, req.data, audioProperties.outputChannelMap, audioProperties.frequencyOut);
-			size_t oldSize = it->data.size();
-			it->data.resize(oldSize + data.size());
-			memcpy(&it->data[oldSize], &data[0], data.size()*sizeof(int16_t));
-			res.waitTime = (float)(it->data.size() / audioProperties.outputChannelMap.size()) / (float)audioProperties.frequencyOut * 1000000.0f;
-			if (res.waitTime > 200000) {
-				res.waitTime -= 200000;
-			} else {
-				res.waitTime = 0;
-			}
-			break;
-		}
-		++it;
-	}
-	mutex.unlock();
-	*/
-	return true;
-}
-
-bool f_getBufferTime(audio_core::getBufferTime::Request &req,
-                     audio_core::getBufferTime::Response &res) {
-	//ROS_INFO("get Time: [%ld]", req.handle, (int32_t)req.data.size());
-	/*
-	mutex.lock();
-	std::vector<InterfacePorperty>::iterator it = listFlow.begin();
-	while (it != listFlow.end()) {
-		if (it->uid == req.handle) {
-			res.time = (float)(it->data.size() / audioProperties.outputChannelMap.size()) / (float)audioProperties.frequencyOut * 1000000.0f;
-			break;
-		}
-		++it;
-	}
-	mutex.unlock();
-	*/
-	return true;
-}
-/*
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_REAR_LEFT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_REAR_RIGHT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_SURROUND_LEFT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_SURROUND_RIGHT);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_LFE);
-	output.push_back(audio_msg::AudioBuffer::CHANNEL_SUBWOOFER);
-*/
-
-
-
-class InterfaceOutput {
-	public:
-		std::vector<audio::channel> m_channelMap;
-		std11::shared_ptr<river::Manager> m_manager;
-		std11::shared_ptr<river::Interface> m_interface;
-	public:
-		InterfaceOutput(std11::shared_ptr<river::Manager> _manager) :
-		  m_manager(_manager) {
-			//Set stereo output:
-			m_channelMap.push_back(audio::channel_frontLeft);
-			m_channelMap.push_back(audio::channel_frontRight);
-			m_interface = m_manager->createOutput(48000,
-			                                      m_channelMap,
-			                                      audio::format_int16,
-			                                      "speaker");
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				return;
-			}
-			m_interface->setReadwrite();
-		}
-		void start() {
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				return;
-			}
-			m_interface->start();
-		}
-		void stop() {
-			//m_interface->write(&data[0], data.size()/m_channelMap.size());
-			m_interface->stop();
-		}
-};
-
+static std11::mutex mutex;
 
 class InterfaceInput {
 	public:
@@ -294,7 +24,7 @@ class InterfaceInput {
 		ros::Publisher m_stream;
 		std11::mutex mutex;
 	public:
-		InterfaceInput(std11::shared_ptr<river::Manager> _manager, const std::string& _input="microphone", const std::string& _publisher="microphone") :
+		InterfaceInput(std11::shared_ptr<river::Manager> _manager, const std::string& _input="microphone", const std::string& _publisher="microphone", bool _feedback=false) :
 		  m_manager(_manager) {
 			ros::NodeHandle nodeHandlePrivate("~");
 			m_stream = nodeHandlePrivate.advertise<audio_msg::AudioBuffer>(_publisher, 100);
@@ -302,10 +32,17 @@ class InterfaceInput {
 			std::vector<audio::channel> channelMap;
 			channelMap.push_back(audio::channel_frontLeft);
 			channelMap.push_back(audio::channel_frontRight);
-			m_interface = m_manager->createInput(48000,
-			                                     channelMap,
-			                                     audio::format_int16,
-			                                     _input);
+			if (_feedback == false) {
+				m_interface = m_manager->createInput(48000,
+				                                     channelMap,
+				                                     audio::format_int16,
+				                                     _input);
+			} else {
+				m_interface = m_manager->createFeedback(48000,
+				                                        channelMap,
+				                                        audio::format_int16,
+				                                        _input);
+			}
 			if(m_interface == nullptr) {
 				APPL_ERROR("nullptr interface");
 				return;
@@ -340,33 +77,186 @@ class InterfaceInput {
 			}
 			// check if someone suscribe to the output:
 			if (m_stream.getNumSubscribers() > 0) {
-				//ROS_INFO("Publish data ... %d frames time %lf", _nBufferFrames, _streamTime);
 				audio_msg::AudioBuffer msg;
 				// create the Ros timestamp
 				msg.header.stamp = ros::Time::now();//_time;
 				// set message frequency
 				msg.frequency = _frequency;
-				// set channel mas properties
-				//msg.channelMap = audioProperty->inputChannelMap;
-				msg.channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
-				msg.channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
+				// set channel map properties
+				msg.channelMap = audio::convertChannel(_map);
+				// Set the format of flow
+				msg.channelFormat = audio::convertFormat(_format);
 				// copy data:
-				msg.data.resize(_nbChunk*_map.size());
-				memcpy(&msg.data[0], _data, _nbChunk*_map.size()*sizeof(int16_t));
+				msg.data.resize(_nbChunk*_map.size()*audio::getFormatBytes(_format));
+				// copy dat aon the ROS buffer interface
+				memcpy(&msg.data[0], _data, _nbChunk*_map.size()*audio::getFormatBytes(_format));
 				// publish message
 				m_stream.publish(msg);
 			}
 		}
-		void start() {
+};
+
+
+class InterfaceOutput {
+	public:
+		std11::shared_ptr<river::Manager> m_manager;
+		std11::shared_ptr<river::Interface> m_interface;
+		int64_t m_id;
+	public:
+		InterfaceOutput(std11::shared_ptr<river::Manager> _manager,
+		                const std::string& _name,
+		                enum audio::format _format,
+		                uint32_t _frequency,
+		                const std::vector<audio::channel>& _map) :
+		  m_manager(_manager) {
+			static int64_t uid = etk::tool::irand(0, 56000);
+			m_id = uid++;
+			uid += etk::tool::irand(0, 10);
+			m_interface = m_manager->createOutput(_frequency,
+			                                      _map,
+			                                      _format,
+			                                      "speaker");
+			if(m_interface == nullptr) {
+				APPL_ERROR("nullptr interface");
+				m_id = -1;
+				return;
+			}
+			m_interface->setReadwrite();
+			m_interface->start();
+		}
+		~InterfaceOutput() {
 			if(m_interface == nullptr) {
 				APPL_ERROR("nullptr interface");
 				return;
 			}
-			// wait 2 second ...
-			usleep(20000000);
 			m_interface->stop();
+			m_interface.reset();
+		}
+		int64_t getId() {
+			return m_id;
+		}
+		uint64_t write(const audio_core::writeRequest_<std::allocator<void> >::_data_type& _data) {
+			if(m_interface == nullptr) {
+				APPL_ERROR("nullptr interface");
+				return 1000000;
+			}
+			m_interface->write(&_data[0], _data.size()/m_interface->getInterfaceFormat().getChunkSize());
+			// TODO : Do it better ...
+			return m_interface->getBufferFillSizeMicrosecond().count()*4/5;
+		}
+		uint64_t getTimeBuffer() {
+			if(m_interface == nullptr) {
+				APPL_ERROR("nullptr interface");
+				return 0;
+			}
+			return m_interface->getBufferFillSizeMicrosecond().count();
 		}
 };
+
+std11::shared_ptr<river::Manager> g_manager;
+static std::vector<std11::shared_ptr<InterfaceOutput>> g_listInterafceOut;
+
+bool f_create(audio_core::create::Request& _req,
+              audio_core::create::Response& _res) {
+	std11::shared_ptr<InterfaceOutput> newInterface;
+	
+	newInterface = std11::make_shared<InterfaceOutput>(g_manager,
+	                                                   _req.flowName,
+	                                                   audio::convertFormat(_req.channelFormat),
+	                                                   _req.frequency,
+	                                                   audio::convertChannel(_req.channelMap));
+	if (newInterface == nullptr) {
+		_res.handle = -1;
+		return false;
+	}
+	_res.handle = newInterface->getId();
+	mutex.lock();
+	g_listInterafceOut.push_back(newInterface);
+	mutex.unlock();
+	APPL_INFO("create : [" << _res.handle << "] type: '" << _req.flowName << "'");
+	return true;
+}
+
+bool f_remove(audio_core::remove::Request& _req,
+              audio_core::remove::Response& _res) {
+	std11::shared_ptr<InterfaceOutput> interface;
+	mutex.lock();
+	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
+		if (g_listInterafceOut[iii] == nullptr) {
+			continue;
+		}
+		if (g_listInterafceOut[iii]->getId() == _req.handle) {
+			interface = g_listInterafceOut[iii];
+			// remove handle in the list
+			g_listInterafceOut[iii].reset();
+			g_listInterafceOut.erase(g_listInterafceOut.begin() + iii);
+			break;
+		}
+	}
+	mutex.unlock();
+	if (interface == nullptr) {
+		APPL_ERROR("remove : [" << _req.handle << "] Can not remove this ==> already removed.");
+		return false;
+	}
+	// Remove interface :
+	APPL_INFO("remove : [" << _req.handle << "] (start)");
+	interface.reset();
+	APPL_INFO("remove : [" << _req.handle << "] (end)");
+	return true;
+}
+
+
+bool f_write(audio_core::write::Request& _req,
+             audio_core::write::Response& _res) {
+	std11::shared_ptr<InterfaceOutput> interface;
+	// reset ouput
+	_res.waitTime = 0;
+	mutex.lock();
+	// Find the handle:
+	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
+		if (g_listInterafceOut[iii] == nullptr) {
+			continue;
+		}
+		if (g_listInterafceOut[iii]->getId() == _req.handle) {
+			interface = g_listInterafceOut[iii];
+			break;
+		}
+	}
+	mutex.unlock();
+	if (interface == nullptr) {
+		APPL_ERROR("write : [" << _req.handle << "] Can not write ==> handle does not exist...");
+		return false;
+	}
+	APPL_INFO("write : [" << _req.handle << "] (start)");
+	_res.waitTime = interface->write(_req.data);
+	APPL_INFO("write : [" << _req.handle << "] (end)");
+	return true;
+}
+
+bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
+                     audio_core::getBufferTime::Response& _res) {
+	std11::shared_ptr<InterfaceOutput> interface;
+	// reset ouput
+	_res.microseconds = 0;
+	mutex.lock();
+	// Find the handle:
+	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
+		if (g_listInterafceOut[iii] == nullptr) {
+			continue;
+		}
+		if (g_listInterafceOut[iii]->getId() == _req.handle) {
+			interface = g_listInterafceOut[iii];
+			break;
+		}
+	}
+	mutex.unlock();
+	if (interface == nullptr) {
+		APPL_ERROR("getBufferTime : [" << _req.handle << "] Can not get time ==> handle does not exist...");
+		return false;
+	}
+	_res.microseconds = interface->getTimeBuffer();
+	return true;
+}
 
 
 
@@ -400,9 +290,11 @@ int main(int _argc, char **_argv) {
 	
 	ros::NodeHandle nodeHandlePrivate("~");
 	
-	std11::shared_ptr<river::Manager> m_manager = river::Manager::create("ROS node");
-	
-	std11::shared_ptr<InterfaceInput> m_input = std11::make_shared<InterfaceInput>(m_manager, "microphone", "mic");
+	g_manager = river::Manager::create("ROS node");
+	// start publishing of Microphone
+	std11::shared_ptr<InterfaceInput> m_input = std11::make_shared<InterfaceInput>(g_manager, "microphone", "microphone", false);
+	// start publishing of Speaker feedback
+	std11::shared_ptr<InterfaceInput> m_feedback = std11::make_shared<InterfaceInput>(g_manager, "speaker", "speaker", true);
 	
 	/*
 	 * A count of how many messages we have sent. This is used to create
@@ -410,7 +302,8 @@ int main(int _argc, char **_argv) {
 	 */
 	ros::spin();
 	m_input.reset();
-	m_manager.reset();
+	m_feedback.reset();
+	g_manager.reset();
 	river::unInit();
 	
 	return 0;

@@ -1,4 +1,4 @@
 # audio interface UID
 int64 handle
 ---
-uint32 time
+uint64 microseconds

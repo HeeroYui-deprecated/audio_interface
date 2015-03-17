@@ -27,7 +27,10 @@ class InterfaceInput {
 		InterfaceInput(std11::shared_ptr<river::Manager> _manager, const std::string& _input="microphone", const std::string& _publisher="microphone", bool _feedback=false) :
 		  m_manager(_manager) {
 			ros::NodeHandle nodeHandlePrivate("~");
-			m_stream = nodeHandlePrivate.advertise<audio_msg::AudioBuffer>(_publisher, 100);
+			m_stream = nodeHandlePrivate.advertise<audio_msg::AudioBuffer>(_publisher,
+			                                                               100,
+			                                                               boost::bind(&InterfaceInput::onConnect, this, _1),
+			                                                               boost::bind(&InterfaceInput::onDisConnect, this, _1));
 			//Set stereo output:
 			std::vector<audio::channel> channelMap;
 			channelMap.push_back(audio::channel_frontLeft);
@@ -65,6 +68,12 @@ class InterfaceInput {
 			}
 			m_interface->stop();
 			m_interface.reset();
+		}
+		void onConnect(const ros::SingleSubscriberPublisher& _pub) {
+			APPL_ERROR("on connect ... " << _pub.getSubscriberName());
+		}
+		void onDisConnect(const ros::SingleSubscriberPublisher& _pub) {
+			APPL_ERROR("on dis-connect ... " << _pub.getSubscriberName());
 		}
 		void onDataReceived(const void* _data,
 		                    const std11::chrono::system_clock::time_point& _time,

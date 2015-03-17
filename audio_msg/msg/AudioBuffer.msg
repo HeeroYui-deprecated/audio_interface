@@ -34,7 +34,7 @@ uint8 FORMAT_DOUBLE=10
 # timestanp the audio buffer
 Header header
 # source
-String sourceName
+string sourceName
 # source id
 uint32 sourceId
 # current frequency of the audio interface

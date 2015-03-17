@@ -33,11 +33,15 @@ uint8 FORMAT_DOUBLE=10
 ##########
 # timestanp the audio buffer
 Header header
+# source
+String sourceName
+# source id
+uint32 sourceId
 # current frequency of the audio interface
 uint16 frequency
 # channel order of the current buffer
 uint8[] channelMap
 # Channel format of the data
 uint8 channelFormat
-# interlaced data of the audio buffer
+# audio data buffer
 uint8[] data

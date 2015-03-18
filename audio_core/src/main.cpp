@@ -438,7 +438,40 @@ bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
  */
 int main(int _argc, char **_argv) {
 	ros::init(_argc, _argv, "audio_interface");
-	etk::log::setLevel(etk::log::logLevelVerbose);
+	
+	etk::log::setLevel(etk::log::logLevelInfo);
+	for (int32_t iii=0; iii<_argc ; ++iii) {
+		std::string data = _argv[iii];
+		if (data == "-l0") {
+			etk::log::setLevel(etk::log::logLevelNone);
+		} else if (data == "-l1") {
+			etk::log::setLevel(etk::log::logLevelCritical);
+		} else if (data == "-l2") {
+			etk::log::setLevel(etk::log::logLevelError);
+		} else if (data == "-l3") {
+			etk::log::setLevel(etk::log::logLevelWarning);
+		} else if (data == "-l4") {
+			etk::log::setLevel(etk::log::logLevelInfo);
+		} else if (data == "-l5") {
+			etk::log::setLevel(etk::log::logLevelDebug);
+		} else if (data == "-l6") {
+			etk::log::setLevel(etk::log::logLevelVerbose);
+		} else if (    data == "-h"
+		            || data == "--help") {
+			APPL_INFO("Help : ");
+			APPL_INFO("    ./xxx [options]");
+			APPL_INFO("        -l0: debug None");
+			APPL_INFO("        -l1: debug Critical");
+			APPL_INFO("        -l2: debug Error");
+			APPL_INFO("        -l3: debug Warning");
+			APPL_INFO("        -l4: debug Info");
+			APPL_INFO("        -l5: debug Debug");
+			APPL_INFO("        -l6: debug Verbose");
+			APPL_INFO("        -h/--help: this help");
+			exit(0);
+		}
+	}
+
 	etk::initDefaultFolder(_argv[0]);
 	etk::setArgZero(_argv[0]);
 	for (int32_t iii=0; iii<_argc; ++iii) {

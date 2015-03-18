@@ -36,7 +36,7 @@ Header header
 # source
 string sourceName
 # source id
-uint32 sourceId
+int32 sourceId
 # current frequency of the audio interface
 uint16 frequency
 # channel order of the current buffer

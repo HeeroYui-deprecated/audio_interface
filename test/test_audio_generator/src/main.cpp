@@ -7,15 +7,6 @@
 
 #include <sstream>
 
-FILE* filee = NULL;
-/**
- * This tutorial demonstrates simple receipt of messages over the ROS system.
- */
-void audioCallback(const audio_msg::AudioBuffer::ConstPtr& msg) {
-	fwrite(&msg->data[0] , sizeof(int16_t), msg->data.size(), filee);
-	ROS_INFO("get message: freq=%d nbChannel=%u nbSample=%ld", (int32_t)msg->frequency, (int32_t)msg->channelMap.size(), msg->data.size());
-}
-
 int64_t audioInterface_create(ros::NodeHandle& _n, ros::Time _timeUs, int32_t _freq, const std::vector<uint8_t> _channelMap) {
 	ros::ServiceClient client = _n.serviceClient<audio_core::create>("create");
 	audio_core::create srv;
@@ -45,24 +36,6 @@ bool audioInterface_remove(ros::NodeHandle& _n, int64_t _uid) {
 	}
 }
 
-/**
- * @brief return wait time
- */
-uint32_t audioInterface_write(ros::NodeHandle& _n, int64_t _uid, const std::vector<int16_t>& _value) {
-	ros::ServiceClient client = _n.serviceClient<audio_core::write>("write");
-	audio_core::write srv;
-	srv.request.handle = _uid;
-	srv.request.data.resize(_value.size()*2);
-	memcpy(&srv.request.data[0], &_value[0], srv.request.data.size());
-	if (client.call(srv)) {
-		ROS_INFO("write need wait time : %d", srv.response.waitTime);
-		return srv.response.waitTime;
-	} else {
-		ROS_ERROR("Failed to call service write");
-		assert(0);
-	}
-}
-
 uint32_t audioInterface_getBufferTime(ros::NodeHandle& _n, int64_t _uid) {
 	ros::ServiceClient client = _n.serviceClient<audio_core::getBufferTime>("getBufferTime");
 	audio_core::getBufferTime srv;
@@ -88,7 +61,7 @@ void usage() {
 }
 
 int main(int argc, char **argv) {
-	if (argc != 6 ) {
+	if (argc < 6 ) {
 		ROS_ERROR ("not enought argument : %d", argc);
 		usage();
 	}
@@ -136,47 +109,51 @@ int main(int argc, char **argv) {
 		ROS_ERROR("nb chnnale supported error : %d not in [1,2,3,4]", p_nbChannels);
 		exit(-1);
 	}
-	// connect:
-	int64_t uid = audioInterface_create(n, timee, p_sampleRate, channelMap);
+	// new interface: just published data:
+	ros::Publisher stream;
+	ros::NodeHandle nodeHandle;
+	// create the output stream:
+	stream = nodeHandle.advertise<audio_msg::AudioBuffer>(p_channelToPlay, 100);
+	
+	audio_msg::AudioBuffer msg;
+	// Basic source name is the curant node handle (it is unique)
+	msg.sourceName = ros::NodeHandle("~").getNamespace();
+	msg.sourceId = 0;
+	// create the Ros timestamp
+	msg.header.stamp = ros::Time::now();
+	// set message frequency
+	msg.frequency = p_sampleRate;
+	// set channel map properties
+	msg.channelMap = channelMap;
+	// Set the format of flow
+	msg.channelFormat = audio_msg::AudioBuffer::FORMAT_INT16;
+	
 	std::vector<int16_t> data;
 	data.resize(baseDataSize*channelMap.size());
-	
 	double baseCycle = 2.0*M_PI/(double)p_sampleRate * (double)p_frequency;
-	
 	int32_t generateTime = (p_timeToPlay * p_sampleRate) / baseDataSize;
-	
-	
 	for (int32_t kkk=0; kkk<generateTime; ++kkk) {
 		for (int32_t iii=0; iii<data.size()/channelMap.size(); iii++) {
 			for (int32_t jjj=0; jjj<channelMap.size(); jjj++) {
-				data[channelMap.size()*iii+jjj] = cos(phase) * 30000;
+				data[channelMap.size()*iii+jjj] = cos(phase) * 15000;
 			}
 			phase += baseCycle;
 			if (phase >= 2*M_PI) {
 				phase -= 2*M_PI;
 			}
 		}
-		//ROS_INFO("send data");
-		int32_t needSleep = audioInterface_write(n, uid, data);
-		if (needSleep > 0) {
-			ROS_INFO("need sleep %d", needSleep);
-			usleep(needSleep);
-		} else {
-			ROS_INFO("not sleep");
+		// copy data:
+		msg.data.resize(data.size()*sizeof(int16_t));
+		memcpy(&msg.data[0], &data[0], data.size()*sizeof(int16_t));
+		// publish message
+		stream.publish(msg);
+		
+		int32_t needSleep = (double(data.size()/channelMap.size()) / (double)p_sampleRate) * 1000000.0 * 0.97;
+		if (kkk >= 5) {
+			ROS_INFO_STREAM("need sleep " << needSleep << " µs for " << data.size()/channelMap.size() << " chunks");
 			usleep(needSleep);
 		}
 	}
-	// wait end if playing :
-	usleep(200000);
-	uint32_t waitTime = audioInterface_getBufferTime(n, uid);
-	while (waitTime>0) {
-		ROS_INFO("wait end of playing ... %u us", waitTime);
-		usleep(waitTime/2);
-		waitTime = audioInterface_getBufferTime(n, uid);
-	}
-	// close:
-	audioInterface_remove(n, uid);
-	
 	return 0;
 }
 

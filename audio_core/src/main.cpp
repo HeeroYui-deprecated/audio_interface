@@ -105,6 +105,198 @@ class InterfaceInput {
 		}
 };
 
+class InterfaceOutputStreamElement {
+	private:
+		int32_t m_id;
+	public:
+		int32_t getId() {
+			return m_id;
+		}
+	private:
+		int32_t m_nbConsecutiveUnderflow;
+	public:
+		int32_t getCountUnderflow() {
+			return m_nbConsecutiveUnderflow;
+		}
+	private:
+		std11::shared_ptr<river::Manager> m_manager;
+		std11::shared_ptr<river::Interface> m_interface;
+		std11::mutex m_mutex;
+	public:
+		InterfaceOutputStreamElement(const std11::shared_ptr<river::Manager>& _manager, int32_t _id) :
+		  m_id(_id),
+		  m_nbConsecutiveUnderflow(0),
+		  m_manager(_manager) {
+			APPL_INFO("Create interface");
+		}
+		~InterfaceOutputStreamElement() {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			APPL_INFO("Remove interfaces (start)");
+			m_interface->stop();
+			m_interface.reset();
+			m_manager.reset();
+			APPL_INFO("Remove interfaces (done)");
+		}
+		void onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			if (m_interface != nullptr) {
+				APPL_VERBOSE("Write data : " << m_id << " size= " << _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
+				m_interface->write(&_msg->data[0], _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
+				m_nbConsecutiveUnderflow = 0;
+				return;
+			}
+			audio::format format = audio::convertFormat(_msg->channelFormat);
+			std::vector<enum audio::channel> map = audio::convertChannel(_msg->channelMap);
+			// no interface found => create a new one
+			m_interface = m_manager->createOutput(_msg->frequency,
+			                                      map,
+			                                      format,
+			                                      _streamName);
+			if(m_interface == nullptr) {
+				APPL_ERROR("nullptr interface");
+				return;
+			}
+			m_interface->setReadwrite();
+			m_interface->setStatusFunction(std11::bind(&InterfaceOutputStreamElement::onStatus, this, std11::placeholders::_1, std11::placeholders::_2, _msg->sourceId));
+			m_interface->start();
+			m_interface->write(&_msg->data[0], _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
+		}
+		void onStatus(const std::string& _origin, const std::string& _status, int32_t _iii) {
+			APPL_VERBOSE("status event : " << _origin << " status=" << _status << " on i=" << _iii);
+			m_nbConsecutiveUnderflow++;
+		}
+};
+
+
+class InterfaceOutputStreamManager {
+	private:
+		std::string m_name;
+	public:
+		const std::string& getName() {
+			return m_name;
+		}
+	private:
+		std11::shared_ptr<river::Manager> m_manager;
+		std::vector<std11::shared_ptr<InterfaceOutputStreamElement> > m_elementList;
+		std11::mutex m_mutex;
+	public:
+		InterfaceOutputStreamManager(const std::string& _name) :
+		  m_name(_name) {
+			m_manager = river::Manager::create(m_name);
+			APPL_INFO("Create Manager : " << m_name);
+		}
+		~InterfaceOutputStreamManager() {
+			APPL_INFO("Remove Manager : " << m_name);
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			APPL_INFO("Clean list");
+			m_elementList.clear();
+			m_manager.reset();
+			APPL_INFO("All is done ...");
+		}
+		void onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			for (size_t iii=0; iii<m_elementList.size(); ++iii) {
+				if (m_elementList[iii] == nullptr) {
+					continue;
+				}
+				if(m_elementList[iii]->getId() == _msg->sourceId) {
+					m_elementList[iii]->onTopicMessage(_streamName, _msg);
+					return;
+				}
+			}
+			// no interface found => create a new one
+			std11::shared_ptr<InterfaceOutputStreamElement> interface = std11::make_shared<InterfaceOutputStreamElement>(m_manager, _msg->sourceId);
+			if(interface == nullptr) {
+				APPL_ERROR("nullptr interface");
+				return;
+			}
+			m_elementList.push_back(interface);
+			interface->onTopicMessage(_streamName, _msg);
+			m_manager->generateDotAll("myDot.dot");
+		}
+		bool onTimer() {
+			std::vector<std11::shared_ptr<InterfaceOutputStreamElement> >::iterator it = m_elementList.begin();
+			bool oneElementRemoved = false;
+			while (it != m_elementList.end()) {
+				if (*it == nullptr) {
+					it = m_elementList.erase(it);
+					continue;
+				}
+				if ((*it)->getCountUnderflow() >= 50) {
+					(*it).reset();
+					oneElementRemoved = true;
+					it = m_elementList.erase(it);
+					continue;
+				}
+				++it;
+			}
+			if (oneElementRemoved == true) {
+				m_manager->generateDotAll("myDot.dot");
+			}
+			// return remove ...
+			return m_elementList.size() == 0;
+		}
+};
+
+class InterfaceOutputStream {
+	public:
+		std::string m_lowLevelStreamName;
+		ros::Subscriber m_stream;
+		ros::Timer m_timer;
+		std11::mutex m_mutex;
+		std::vector<std11::shared_ptr<InterfaceOutputStreamManager> > m_list;
+	public:
+		InterfaceOutputStream(const std::string& _input="speaker", const std::string& _publisher="speaker") :
+		  m_lowLevelStreamName("speaker") {
+			ros::NodeHandle nodeHandlePrivate("~");
+			m_stream = nodeHandlePrivate.subscribe<audio_msg::AudioBuffer>(_publisher,
+			                                                               1000,
+			                                                               boost::bind(&InterfaceOutputStream::onTopicMessage, this, _1));
+			m_timer = nodeHandlePrivate.createTimer(ros::Duration(ros::Rate(4)), boost::bind(&InterfaceOutputStream::onTimer, this, _1));
+		}
+		~InterfaceOutputStream() {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			m_list.clear();
+		}
+		void onTopicMessage(const audio_msg::AudioBuffer::ConstPtr& _msg) {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			for (size_t iii=0; iii<m_list.size(); ++iii) {
+				if (m_list[iii] == nullptr) {
+					continue;
+				}
+				if (m_list[iii]->getName() == _msg->sourceName) {
+					APPL_VERBOSE("Write data : " << _msg->sourceName);
+					m_list[iii]->onTopicMessage(m_lowLevelStreamName, _msg);
+					return;
+				}
+			}
+			// new interface name:
+			std11::shared_ptr<InterfaceOutputStreamManager> newInterface = std11::make_shared<InterfaceOutputStreamManager>(_msg->sourceName);
+			if (newInterface == nullptr) {
+				APPL_ERROR("can not generate new interface element...");
+				return;
+			}
+			m_list.push_back(newInterface);
+			newInterface->onTopicMessage(m_lowLevelStreamName, _msg);
+		}
+		void onTimer(const ros::TimerEvent& _timer) {
+			std11::unique_lock<std::mutex> lock(m_mutex);
+			std::vector<std11::shared_ptr<InterfaceOutputStreamManager> >::iterator it = m_list.begin();
+			while (it != m_list.end()) {
+				if (*it == nullptr) {
+					it = m_list.erase(it);
+					continue;
+				}
+				if ((*it)->onTimer() == true) {
+					(*it).reset();
+					it = m_list.erase(it);
+					continue;
+				}
+				++it;
+			}
+		}
+};
+
 
 class InterfaceOutput {
 	public:
@@ -214,34 +406,6 @@ bool f_remove(audio_core::remove::Request& _req,
 	return true;
 }
 
-
-bool f_write(audio_core::write::Request& _req,
-             audio_core::write::Response& _res) {
-	std11::shared_ptr<InterfaceOutput> interface;
-	// reset ouput
-	_res.waitTime = 0;
-	mutex.lock();
-	// Find the handle:
-	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
-		if (g_listInterafceOut[iii] == nullptr) {
-			continue;
-		}
-		if (g_listInterafceOut[iii]->getId() == _req.handle) {
-			interface = g_listInterafceOut[iii];
-			break;
-		}
-	}
-	mutex.unlock();
-	if (interface == nullptr) {
-		APPL_ERROR("write : [" << _req.handle << "] Can not write ==> handle does not exist...");
-		return false;
-	}
-	APPL_INFO("write : [" << _req.handle << "] (start)");
-	_res.waitTime = interface->write(_req.data);
-	APPL_INFO("write : [" << _req.handle << "] (end)");
-	return true;
-}
-
 bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
                      audio_core::getBufferTime::Response& _res) {
 	std11::shared_ptr<InterfaceOutput> interface;
@@ -294,16 +458,15 @@ int main(int _argc, char **_argv) {
 	
 	ros::ServiceServer serviceCreate = n.advertiseService("create", f_create);
 	ros::ServiceServer serviceRemove = n.advertiseService("remove", f_remove);
-	ros::ServiceServer serviceWrite = n.advertiseService("write", f_write);
 	ros::ServiceServer serviceGetBufferTime = n.advertiseService("getBufferTime", f_getBufferTime);
 	
-	ros::NodeHandle nodeHandlePrivate("~");
-	
-	g_manager = river::Manager::create("ROS node");
+	g_manager = river::Manager::create(n.getNamespace());
 	// start publishing of Microphone
 	std11::shared_ptr<InterfaceInput> m_input = std11::make_shared<InterfaceInput>(g_manager, "microphone", "microphone", false);
 	// start publishing of Speaker feedback
-	std11::shared_ptr<InterfaceInput> m_feedback = std11::make_shared<InterfaceInput>(g_manager, "speaker", "speaker", true);
+	std11::shared_ptr<InterfaceInput> m_feedback = std11::make_shared<InterfaceInput>(g_manager, "speaker", "feedback/speaker", true);
+	// create the Stream for output
+	std11::shared_ptr<InterfaceOutputStream> m_speaker = std11::make_shared<InterfaceOutputStream>("speaker", "speaker");
 	
 	/*
 	 * A count of how many messages we have sent. This is used to create

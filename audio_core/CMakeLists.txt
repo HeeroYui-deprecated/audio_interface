@@ -44,7 +44,6 @@ add_service_files(
   FILES
   create.srv
   remove.srv
-  write.srv
   getBufferTime.srv
 )
 

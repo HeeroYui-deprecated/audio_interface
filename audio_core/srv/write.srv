@@ -1,6 +1,0 @@
-# audio interface UID
-int64 handle
-# interlaced data of the audio buffer
-int8[] data
----
-uint32 waitTime

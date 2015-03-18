@@ -4,7 +4,6 @@
 #include "audio_msg/AudioBuffer.h"
 #include "audio_core/create.h"
 #include "audio_core/remove.h"
-#include "audio_core/write.h"
 #include "audio_core/getBufferTime.h"
 #include <river/river.h>
 #include <river/Interface.h>
@@ -298,69 +297,12 @@ class InterfaceOutputStream {
 };
 
 
-class InterfaceOutput {
-	public:
-		std11::shared_ptr<river::Manager> m_manager;
-		std11::shared_ptr<river::Interface> m_interface;
-		int64_t m_id;
-	public:
-		InterfaceOutput(std11::shared_ptr<river::Manager> _manager,
-		                const std::string& _name,
-		                enum audio::format _format,
-		                uint32_t _frequency,
-		                const std::vector<audio::channel>& _map) :
-		  m_manager(_manager) {
-			static int64_t uid = etk::tool::irand(0, 56000);
-			m_id = uid++;
-			uid += etk::tool::irand(0, 10);
-			m_interface = m_manager->createOutput(_frequency,
-			                                      _map,
-			                                      _format,
-			                                      "speaker");
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				m_id = -1;
-				return;
-			}
-			m_interface->setReadwrite();
-			m_interface->start();
-		}
-		~InterfaceOutput() {
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				return;
-			}
-			m_interface->stop();
-			m_interface.reset();
-		}
-		int64_t getId() {
-			return m_id;
-		}
-		uint64_t write(const audio_core::writeRequest_<std::allocator<void> >::_data_type& _data) {
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				return 1000000;
-			}
-			m_interface->write(&_data[0], _data.size()/m_interface->getInterfaceFormat().getChunkSize());
-			// TODO : Do it better ...
-			return m_interface->getBufferFillSizeMicrosecond().count()*4/5;
-		}
-		uint64_t getTimeBuffer() {
-			if(m_interface == nullptr) {
-				APPL_ERROR("nullptr interface");
-				return 0;
-			}
-			return m_interface->getBufferFillSizeMicrosecond().count();
-		}
-};
-
 std11::shared_ptr<river::Manager> g_manager;
-static std::vector<std11::shared_ptr<InterfaceOutput>> g_listInterafceOut;
 
 bool f_create(audio_core::create::Request& _req,
               audio_core::create::Response& _res) {
+	/*
 	std11::shared_ptr<InterfaceOutput> newInterface;
-	
 	newInterface = std11::make_shared<InterfaceOutput>(g_manager,
 	                                                   _req.flowName,
 	                                                   audio::convertFormat(_req.channelFormat),
@@ -372,14 +314,16 @@ bool f_create(audio_core::create::Request& _req,
 	}
 	_res.handle = newInterface->getId();
 	mutex.lock();
-	g_listInterafceOut.push_back(newInterface);
+	// TODO : g_listInterafceOut.push_back(newInterface);
 	mutex.unlock();
 	APPL_INFO("create : [" << _res.handle << "] type: '" << _req.flowName << "'");
+	*/
 	return true;
 }
 
 bool f_remove(audio_core::remove::Request& _req,
               audio_core::remove::Response& _res) {
+	/*
 	std11::shared_ptr<InterfaceOutput> interface;
 	mutex.lock();
 	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
@@ -403,11 +347,13 @@ bool f_remove(audio_core::remove::Request& _req,
 	APPL_INFO("remove : [" << _req.handle << "] (start)");
 	interface.reset();
 	APPL_INFO("remove : [" << _req.handle << "] (end)");
+	*/
 	return true;
 }
 
 bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
                      audio_core::getBufferTime::Response& _res) {
+	/*
 	std11::shared_ptr<InterfaceOutput> interface;
 	// reset ouput
 	_res.microseconds = 0;
@@ -428,6 +374,7 @@ bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
 		return false;
 	}
 	_res.microseconds = interface->getTimeBuffer();
+	*/
 	return true;
 }
 
@@ -438,7 +385,6 @@ bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
  */
 int main(int _argc, char **_argv) {
 	ros::init(_argc, _argv, "audio_interface");
-	
 	etk::log::setLevel(etk::log::logLevelInfo);
 	for (int32_t iii=0; iii<_argc ; ++iii) {
 		std::string data = _argv[iii];

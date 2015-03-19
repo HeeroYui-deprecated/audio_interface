@@ -36,6 +36,10 @@ add_executable(${PROJECT_NAME}_node
   src/main.cpp
 )
 
+## Add cmake target dependencies of the executable/library
+## as an example, message headers may need to be generated before nodes
+add_dependencies(${PROJECT_NAME}_node audio_msg_generate_messages_cpp)
+
 target_link_libraries(${PROJECT_NAME}_node ${ALSA_LIBRARIES} pthread)
 
 ## Specify libraries to link a library or executable target against

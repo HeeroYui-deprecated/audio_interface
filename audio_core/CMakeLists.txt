@@ -79,11 +79,15 @@ include_directories(
 add_executable(audio_core_node
   src/debug.cpp
   src/main.cpp
+  src/InterfaceInput.cpp
+  src/InterfaceOutput.cpp
+  src/InterfaceOutputManager.cpp
+  src/InterfaceOutputElement.cpp
 )
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(${PROJECT_NAME}_node audio_core_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_node audio_msg_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node

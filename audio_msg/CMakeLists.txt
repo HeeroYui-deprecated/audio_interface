@@ -42,6 +42,9 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   AudioBuffer.msg
+  AudioControl.msg
+  AudioStatus.msg
+  AudioVolume.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

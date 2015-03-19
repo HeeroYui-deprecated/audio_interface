@@ -2,10 +2,10 @@
 #include "audio_msg/AudioBuffer.h"
 #include "audio_core/create.h"
 #include "audio_core/remove.h"
-#include "audio_core/write.h"
 #include "audio_core/getBufferTime.h"
 
 #include <sstream>
+#include <boost/thread/mutex.hpp>
 
 int64_t audioInterface_create(ros::NodeHandle& _n, ros::Time _timeUs, int32_t _freq, const std::vector<uint8_t> _channelMap) {
 	ros::ServiceClient client = _n.serviceClient<audio_core::create>("create");
@@ -48,49 +48,106 @@ uint32_t audioInterface_getBufferTime(ros::NodeHandle& _n, int64_t _uid) {
 	return 0;
 }
 
+static std::string p_channelToPlay = "/audio/speaker";
+static int32_t p_sampleRate = 48000;
+static int32_t p_nbChannels = 2;
+static int32_t p_frequency = 440;
+
+static int32_t baseDataSize = 0;
+static double phase = 0.0;
+std::vector<uint8_t> channelMap;
+static ros::Publisher stream;
+
+ros::Time nextFrame;
+
+void onTimer(const ros::TimerEvent& _timer) {
+	int32_t frameSizeTime = (double(baseDataSize) / (double)p_sampleRate) * 1000000000.0;
+	static boost::mutex mutex;
+	boost::unique_lock<boost::mutex> lock(mutex);
+	if ((nextFrame - ros::Time::now()) > ros::Duration(0, frameSizeTime)) {
+		return;
+	}
+	
+	audio_msg::AudioBuffer msg;
+	// Basic source name is the curant node handle (it is unique)
+	msg.sourceName = ros::NodeHandle("~").getNamespace();
+	msg.sourceId = 0;
+	// create the Ros timestamp
+	msg.header.stamp = nextFrame;
+	// set message frequency
+	msg.frequency = p_sampleRate;
+	// set channel map properties
+	msg.channelMap = channelMap;
+	// Set the format of flow
+	msg.channelFormat = audio_msg::AudioBuffer::FORMAT_INT16;
+	
+	std::vector<int16_t> data;
+	data.resize(baseDataSize*channelMap.size());
+	double baseCycle = 2.0*M_PI/(double)p_sampleRate * (double)p_frequency;
+	for (int32_t iii=0; iii<data.size()/channelMap.size(); iii++) {
+		for (int32_t jjj=0; jjj<channelMap.size(); jjj++) {
+			data[channelMap.size()*iii+jjj] = cos(phase) * 15000;
+		}
+		phase += baseCycle;
+		if (phase >= 2*M_PI) {
+			phase -= 2*M_PI;
+		}
+	}
+	// copy data:
+	msg.data.resize(data.size()*sizeof(int16_t));
+	memcpy(&msg.data[0], &data[0], data.size()*sizeof(int16_t));
+	// publish message
+	stream.publish(msg);
+	
+	nextFrame += ros::Duration(0, frameSizeTime);
+	ROS_INFO_STREAM("next frame  " << nextFrame );
+}
+
+
 void usage() {
-	ROS_INFO("test_audio_generator usage [channel] [sampleRate] [nbChannels] [frequency] [timeToPlay]:");
-	ROS_INFO("	[channel] output to write data");
-	ROS_INFO("	[sampleRate] number of sample per second");
-	ROS_INFO("	[nbChannels] nb channel");
-	ROS_INFO("	[frequency] frequency to generate");
-	ROS_INFO("	[timeToPlay] time to generate signal");
+	ROS_INFO("test_audio_generator usage -c=[channel] -s=[sampleRate] -n=[nbChannels] -f=[frequency] -t=[timeToPlay]:");
+	ROS_INFO("	[channel] output to write data (default /audio/speaker)");
+	ROS_INFO("	[sampleRate] number of sample per second (default 48000)");
+	ROS_INFO("	[nbChannels] nb channel (default 2)");
+	ROS_INFO("	[frequency] frequency to generate (default 440)");
 	ROS_INFO("ex");
 	ROS_INFO("	rosrun test_audio_generator test_audio_generator_node /audio/ 48000 2 440 10");
 	exit (-1);
 }
 
-int main(int argc, char **argv) {
-	if (argc < 6 ) {
-		ROS_ERROR ("not enought argument : %d", argc);
-		usage();
+int main(int _argc, char **_argv) {
+	ros::init(_argc, _argv, "test_audio_generator");
+	
+	for (int32_t iii=0; iii<_argc ; ++iii) {
+		if (strncmp(_argv[iii],"-c=", 3) == 0) {
+			p_channelToPlay = &_argv[iii][3];
+		} else if (strncmp(_argv[iii],"-s=", 3) == 0) {
+			sscanf(&_argv[iii][3], "%d", &p_sampleRate);
+		} else if (strncmp(_argv[iii],"-n=", 3) == 0) {
+			sscanf(&_argv[iii][3], "%d", &p_nbChannels);
+		} else if (strncmp(_argv[iii],"-f=", 3) == 0) {
+			sscanf(&_argv[iii][3], "%d", &p_frequency);
+		} else if (    strcmp(_argv[iii],"-h") == 0
+		            || strcmp(_argv[iii],"--help") == 0) {
+			usage();
+		}
 	}
-	std::string p_channelToPlay = argv[1];
-	int32_t p_sampleRate = atoi(argv[2]);
-	int32_t p_nbChannels = atoi(argv[3]);
-	int32_t p_frequency = atoi(argv[4]);
-	int32_t p_timeToPlay = atoi(argv[5]);
+	ROS_INFO_STREAM("Run with:");
+	ROS_INFO_STREAM("    channel='" << p_channelToPlay << "'");
+	ROS_INFO_STREAM("    sampleRate=" << p_sampleRate << " Hz");
+	ROS_INFO_STREAM("    nbChannels=" << p_nbChannels);
+	ROS_INFO_STREAM("    frequency=" << p_frequency << " Hz");
 	
-	sscanf(argv[2], "%d", &p_sampleRate);
-	sscanf(argv[3], "%d", &p_nbChannels);
-	sscanf(argv[4], "%d", &p_frequency);
-	sscanf(argv[5], "%d", &p_timeToPlay);
-	
-	ROS_INFO("	rosrun test_audio_generator test_audio_generator_node %s %d %d %d %d", p_channelToPlay.c_str(), p_sampleRate, p_nbChannels, p_frequency, p_timeToPlay);
-	
-	ros::init(argc, argv, "test_audio_generator");
-	ros::NodeHandle n;
-	double phase = 0;
+	ros::NodeHandle nodeHandlePrivate("~");
 	// send data:
 	ros::Time timee = ros::Time();
-	int32_t baseDataSize = 0;
 	if (p_sampleRate <= 32000) {
 		baseDataSize = 1024*2;
 	} else {
 		baseDataSize = 1024*8;
 	}
 	
-	std::vector<uint8_t> channelMap;
+	
 	if (p_nbChannels == 1) {
 		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_CENTER);
 	} else if (p_nbChannels == 2) {
@@ -110,50 +167,18 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 	// new interface: just published data:
-	ros::Publisher stream;
+	
+	nextFrame = ros::Time::now();
+	
 	ros::NodeHandle nodeHandle;
 	// create the output stream:
-	stream = nodeHandle.advertise<audio_msg::AudioBuffer>(p_channelToPlay, 100);
+	stream = nodeHandle.advertise<audio_msg::AudioBuffer>(p_channelToPlay, 10);
 	
-	audio_msg::AudioBuffer msg;
-	// Basic source name is the curant node handle (it is unique)
-	msg.sourceName = ros::NodeHandle("~").getNamespace();
-	msg.sourceId = 0;
-	// create the Ros timestamp
-	msg.header.stamp = ros::Time::now();
-	// set message frequency
-	msg.frequency = p_sampleRate;
-	// set channel map properties
-	msg.channelMap = channelMap;
-	// Set the format of flow
-	msg.channelFormat = audio_msg::AudioBuffer::FORMAT_INT16;
 	
-	std::vector<int16_t> data;
-	data.resize(baseDataSize*channelMap.size());
-	double baseCycle = 2.0*M_PI/(double)p_sampleRate * (double)p_frequency;
-	int32_t generateTime = (p_timeToPlay * p_sampleRate) / baseDataSize;
-	for (int32_t kkk=0; kkk<generateTime; ++kkk) {
-		for (int32_t iii=0; iii<data.size()/channelMap.size(); iii++) {
-			for (int32_t jjj=0; jjj<channelMap.size(); jjj++) {
-				data[channelMap.size()*iii+jjj] = cos(phase) * 15000;
-			}
-			phase += baseCycle;
-			if (phase >= 2*M_PI) {
-				phase -= 2*M_PI;
-			}
-		}
-		// copy data:
-		msg.data.resize(data.size()*sizeof(int16_t));
-		memcpy(&msg.data[0], &data[0], data.size()*sizeof(int16_t));
-		// publish message
-		stream.publish(msg);
-		
-		int32_t needSleep = (double(data.size()/channelMap.size()) / (double)p_sampleRate) * 1000000.0 * 0.97;
-		if (kkk >= 5) {
-			ROS_INFO_STREAM("need sleep " << needSleep << " µs for " << data.size()/channelMap.size() << " chunks");
-			usleep(needSleep);
-		}
-	}
+	ros::Timer timer = nodeHandlePrivate.createTimer(ros::Duration(ros::Rate(100)), boost::bind(&onTimer, _1));
+	
+	ros::spin();
+	
 	return 0;
 }
 

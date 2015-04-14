@@ -11,7 +11,7 @@
 
 appl::InterfaceOutputManager::InterfaceOutputManager(const std::string& _name) :
   m_name(_name) {
-	m_manager = river::Manager::create(m_name);
+	m_manager = audio::river::Manager::create(m_name);
 	APPL_INFO("Create Manager : " << m_name);
 }
 

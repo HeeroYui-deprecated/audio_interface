@@ -9,7 +9,7 @@
 #include "debug.h"
 #include "InterfaceOutputElement.h"
 
-appl::InterfaceOutputElement::InterfaceOutputElement(const std11::shared_ptr<river::Manager>& _manager, int32_t _id) :
+appl::InterfaceOutputElement::InterfaceOutputElement(const std11::shared_ptr<audio::river::Manager>& _manager, int32_t _id) :
   m_id(_id),
   m_nbConsecutiveUnderflow(0),
   m_manager(_manager) {

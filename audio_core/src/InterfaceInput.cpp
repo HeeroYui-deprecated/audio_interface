@@ -12,7 +12,7 @@
 #include <audio_msg/AudioBuffer.h>
 #include <boost/thread.hpp>
 
-appl::InterfaceInput::InterfaceInput(std11::shared_ptr<river::Manager> _manager,
+appl::InterfaceInput::InterfaceInput(std11::shared_ptr<audio::river::Manager> _manager,
                                      const std::string& _input,
                                      const std::string& _publisher,
                                      bool _feedback) :
@@ -67,7 +67,7 @@ void appl::InterfaceInput::onDisConnect(const ros::SingleSubscriberPublisher& _p
 	APPL_ERROR("on dis-connect ... " << _pub.getSubscriberName());
 }
 void appl::InterfaceInput::onDataReceived(const void* _data,
-                                          const std11::chrono::system_clock::time_point& _time,
+                                          const audio::Time& _time,
                                           size_t _nbChunk,
                                           enum audio::format _format,
                                           uint32_t _frequency,

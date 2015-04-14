@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   audio_msg
   message_generation
-  river
+  audio_river
 )
 
 ################################################

@@ -22,7 +22,7 @@ namespace appl {
 				return m_name;
 			}
 		private:
-			std11::shared_ptr<river::Manager> m_manager;
+			std11::shared_ptr<audio::river::Manager> m_manager;
 			std::vector<std11::shared_ptr<appl::InterfaceOutputElement> > m_elementList;
 			std11::mutex m_mutex;
 		public:

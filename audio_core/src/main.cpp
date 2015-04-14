@@ -5,9 +5,9 @@
 #include "audio_core/create.h"
 #include "audio_core/remove.h"
 #include "audio_core/getBufferTime.h"
-#include <river/river.h>
-#include <river/Interface.h>
-#include <river/Manager.h>
+#include <audio/river/river.h>
+#include <audio/river/Interface.h>
+#include <audio/river/Manager.h>
 #include <boost/thread.hpp>
 #include <sstream>
 #include "debug.h"
@@ -21,7 +21,7 @@ static std11::mutex mutex;
 #include "InterfaceOutput.h"
 
 
-std11::shared_ptr<river::Manager> g_manager;
+std11::shared_ptr<audio::river::Manager> g_manager;
 
 bool f_create(audio_core::create::Request& _req,
               audio_core::create::Response& _res) {
@@ -155,7 +155,7 @@ int main(int _argc, char **_argv) {
 			APPL_INFO("Find hardware configuration ... : '" << hardwareInterface << "'");
 		}
 	}
-	river::init(hardwareInterface);
+	audio::river::init(hardwareInterface);
 	
 	ros::NodeHandle n;
 	
@@ -163,7 +163,7 @@ int main(int _argc, char **_argv) {
 	ros::ServiceServer serviceRemove = n.advertiseService("remove", f_remove);
 	ros::ServiceServer serviceGetBufferTime = n.advertiseService("getBufferTime", f_getBufferTime);
 	
-	g_manager = river::Manager::create(n.getNamespace());
+	g_manager = audio::river::Manager::create(n.getNamespace());
 	// start publishing of Microphone
 	std11::shared_ptr<appl::InterfaceInput> m_input = std11::make_shared<appl::InterfaceInput>(g_manager, "microphone", "microphone", false);
 	// start publishing of Speaker feedback
@@ -179,7 +179,7 @@ int main(int _argc, char **_argv) {
 	m_input.reset();
 	m_feedback.reset();
 	g_manager.reset();
-	river::unInit();
+	audio::river::unInit();
 	
 	return 0;
 }

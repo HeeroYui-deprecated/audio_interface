@@ -9,7 +9,7 @@
 #include "debug.h"
 #include "InterfaceOutputManager.h"
 
-appl::InterfaceOutputManager::InterfaceOutputManager(const std::string& _name) :
+appl::InterfaceOutputManager::InterfaceOutputManager(const etk::String& _name) :
   m_name(_name) {
 	m_manager = audio::river::Manager::create(m_name);
 	APPL_INFO("Create Manager : " << m_name);
@@ -17,15 +17,15 @@ appl::InterfaceOutputManager::InterfaceOutputManager(const std::string& _name) :
 
 appl::InterfaceOutputManager::~InterfaceOutputManager() {
 	APPL_INFO("Remove Manager : " << m_name);
-	std11::unique_lock<std::mutex> lock(m_mutex);
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	APPL_INFO("Clean list");
 	m_elementList.clear();
 	m_manager.reset();
 	APPL_INFO("All is done ...");
 }
 
-void appl::InterfaceOutputManager::onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
-	std11::unique_lock<std::mutex> lock(m_mutex);
+void appl::InterfaceOutputManager::onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	for (size_t iii=0; iii<m_elementList.size(); ++iii) {
 		if (m_elementList[iii] == nullptr) {
 			continue;
@@ -41,13 +41,13 @@ void appl::InterfaceOutputManager::onTopicMessage(const std::string& _streamName
 		APPL_ERROR("nullptr interface");
 		return;
 	}
-	m_elementList.push_back(interface);
+	m_elementList.pushBack(interface);
 	interface->onTopicMessage(_streamName, _msg);
 	m_manager->generateDotAll("myDot.dot");
 }
 
 bool appl::InterfaceOutputManager::onTimer() {
-	std::vector<std11::shared_ptr<appl::InterfaceOutputElement> >::iterator it = m_elementList.begin();
+	etk::Vector<std11::shared_ptr<appl::InterfaceOutputElement> >::iterator it = m_elementList.begin();
 	bool oneElementRemoved = false;
 	while (it != m_elementList.end()) {
 		if (*it == nullptr) {

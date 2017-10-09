@@ -16,19 +16,19 @@
 namespace appl {
 	class InterfaceOutputManager {
 		private:
-			std::string m_name;
+			etk::String m_name;
 		public:
-			const std::string& getName() {
+			const etk::String& getName() {
 				return m_name;
 			}
 		private:
 			std11::shared_ptr<audio::river::Manager> m_manager;
-			std::vector<std11::shared_ptr<appl::InterfaceOutputElement> > m_elementList;
+			etk::Vector<std11::shared_ptr<appl::InterfaceOutputElement> > m_elementList;
 			std11::mutex m_mutex;
 		public:
-			InterfaceOutputManager(const std::string& _name);
+			InterfaceOutputManager(const etk::String& _name);
 			~InterfaceOutputManager();
-			void onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg);
+			void onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg);
 			bool onTimer();
 	};
 }

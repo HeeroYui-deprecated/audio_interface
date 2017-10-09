@@ -20,8 +20,8 @@ namespace appl {
 			std11::mutex mutex;
 		public:
 			InterfaceInput(std11::shared_ptr<audio::river::Manager> _manager,
-			               const std::string& _input="microphone",
-			               const std::string& _publisher="microphone",
+			               const etk::String& _input="microphone",
+			               const etk::String& _publisher="microphone",
 			               bool _feedback=false);
 			~InterfaceInput();
 		protected:
@@ -32,7 +32,7 @@ namespace appl {
 			                    size_t _nbChunk,
 			                    enum audio::format _format,
 			                    uint32_t _frequency,
-			                    const std::vector<audio::channel>& _map);
+			                    const etk::Vector<audio::channel>& _map);
 	};
 }
 

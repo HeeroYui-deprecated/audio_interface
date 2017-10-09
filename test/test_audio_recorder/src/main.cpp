@@ -12,7 +12,7 @@ FILE* filee = NULL;
 void audioCallback(const audio_msg::AudioBuffer::ConstPtr& _msg) {
 	audio::format format = audio::convertFormat(_msg->channelFormat);
 	int32_t nbByteSample = audio::getFormatBytes(format);
-	std::vector<enum audio::channel> channel = audio::convertChannel(_msg->channelMap);
+	etk::Vector<enum audio::channel> channel = audio::convertChannel(_msg->channelMap);
 	fwrite(&_msg->data[0], nbByteSample, _msg->data.size()/nbByteSample, filee);
 	ROS_INFO_STREAM("get message: freq=" << _msg->frequency << " nbChannel=" << channel << " nbSample=" << _msg->data.size()/(_msg->channelMap.size()*nbByteSample) << " format=" << format);
 }
@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
 		ROS_ERROR ("not enought argument : %d", argc);
 		usage();
 	}
-	std::string p_channelToRecord = argv[1];
-	std::string p_fileToSave = argv[2];
+	etk::String p_channelToRecord = argv[1];
+	etk::String p_fileToSave = argv[2];
 	
 	filee = fopen(p_fileToSave.c_str(), "w");
 	ros::init(argc, argv, "test_audio_recorder");

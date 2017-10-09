@@ -9,7 +9,7 @@
 #include "debug.h"
 #include "InterfaceOutput.h"
 
-appl::InterfaceOutput::InterfaceOutput(const std::string& _input, const std::string& _publisher) :
+appl::InterfaceOutput::InterfaceOutput(const etk::String& _input, const etk::String& _publisher) :
   m_lowLevelStreamName(_input) {
 	ros::NodeHandle nodeHandlePrivate("~");
 	m_stream = nodeHandlePrivate.subscribe<audio_msg::AudioBuffer>(_publisher,
@@ -19,12 +19,12 @@ appl::InterfaceOutput::InterfaceOutput(const std::string& _input, const std::str
 }
 
 appl::InterfaceOutput::~InterfaceOutput() {
-	std11::unique_lock<std::mutex> lock(m_mutex);
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	m_list.clear();
 }
 
 void appl::InterfaceOutput::onTopicMessage(const audio_msg::AudioBuffer::ConstPtr& _msg) {
-	std11::unique_lock<std::mutex> lock(m_mutex);
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	for (size_t iii=0; iii<m_list.size(); ++iii) {
 		if (m_list[iii] == nullptr) {
 			continue;
@@ -41,13 +41,13 @@ void appl::InterfaceOutput::onTopicMessage(const audio_msg::AudioBuffer::ConstPt
 		APPL_ERROR("can not generate new interface element...");
 		return;
 	}
-	m_list.push_back(newInterface);
+	m_list.pushBack(newInterface);
 	newInterface->onTopicMessage(m_lowLevelStreamName, _msg);
 }
 
 void appl::InterfaceOutput::onTimer(const ros::TimerEvent& _timer) {
-	std11::unique_lock<std::mutex> lock(m_mutex);
-	std::vector<std11::shared_ptr<appl::InterfaceOutputManager> >::iterator it = m_list.begin();
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
+	etk::Vector<std11::shared_ptr<appl::InterfaceOutputManager> >::iterator it = m_list.begin();
 	while (it != m_list.end()) {
 		if (*it == nullptr) {
 			it = m_list.erase(it);

@@ -35,8 +35,8 @@ namespace appl {
 		public:
 			InterfaceOutputElement(const std11::shared_ptr<audio::river::Manager>& _manager, int32_t _id);
 			~InterfaceOutputElement();
-			void onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg);
-			void onStatus(const std::string& _origin, const std::string& _status, int32_t _iii);
+			void onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg);
+			void onStatus(const etk::String& _origin, const etk::String& _status, int32_t _iii);
 	};
 }
 

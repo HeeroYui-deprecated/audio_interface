@@ -16,13 +16,13 @@
 namespace appl {
 	class InterfaceOutput {
 		public:
-			std::string m_lowLevelStreamName;
+			etk::String m_lowLevelStreamName;
 			ros::Subscriber m_stream;
 			ros::Timer m_timer;
 			std11::mutex m_mutex;
-			std::vector<std11::shared_ptr<appl::InterfaceOutputManager> > m_list;
+			etk::Vector<std11::shared_ptr<appl::InterfaceOutputManager> > m_list;
 		public:
-			InterfaceOutput(const std::string& _input="speaker", const std::string& _publisher="speaker");
+			InterfaceOutput(const etk::String& _input="speaker", const etk::String& _publisher="speaker");
 			~InterfaceOutput();
 			void onTopicMessage(const audio_msg::AudioBuffer::ConstPtr& _msg);
 			void onTimer(const ros::TimerEvent& _timer);

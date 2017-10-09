@@ -38,7 +38,7 @@ bool f_create(audio_core::create::Request& _req,
 	}
 	_res.handle = newInterface->getId();
 	mutex.lock();
-	// TODO : g_listInterafceOut.push_back(newInterface);
+	// TODO : g_listInterafceOut.pushBack(newInterface);
 	mutex.unlock();
 	APPL_INFO("create : [" << _res.handle << "] type: '" << _req.flowName << "'");
 	*/
@@ -111,7 +111,7 @@ int main(int _argc, char **_argv) {
 	ros::init(_argc, _argv, "audio_interface");
 	etk::log::setLevel(etk::log::logLevelInfo);
 	for (int32_t iii=0; iii<_argc ; ++iii) {
-		std::string data = _argv[iii];
+		etk::String data = _argv[iii];
 		if (data == "-l0") {
 			etk::log::setLevel(etk::log::logLevelNone);
 		} else if (data == "-l1") {
@@ -147,11 +147,11 @@ int main(int _argc, char **_argv) {
 	for (int32_t iii=0; iii<_argc; ++iii) {
 		APPL_ERROR("Argument : " << iii << " '" << _argv[iii] << "'");
 	}
-	std::string hardwareInterface="DATA:hardware.json";
+	etk::String hardwareInterface="DATA:hardware.json";
 	for (int32_t iii=0; iii<_argc; ++iii) {
-		std::string arg = _argv[iii];
+		etk::String arg = _argv[iii];
 		if (etk::start_with(_argv[iii], "--hardware=") == true) {
-			hardwareInterface = std::string(&_argv[iii][11]);
+			hardwareInterface = etk::String(&_argv[iii][11]);
 			APPL_INFO("Find hardware configuration ... : '" << hardwareInterface << "'");
 		}
 	}

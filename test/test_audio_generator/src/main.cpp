@@ -7,7 +7,7 @@
 #include <sstream>
 #include <boost/thread/mutex.hpp>
 
-int64_t audioInterface_create(ros::NodeHandle& _n, ros::Time _timeUs, int32_t _freq, const std::vector<uint8_t> _channelMap) {
+int64_t audioInterface_create(ros::NodeHandle& _n, ros::Time _timeUs, int32_t _freq, const etk::Vector<uint8_t> _channelMap) {
 	ros::ServiceClient client = _n.serviceClient<audio_core::create>("create");
 	audio_core::create srv;
 	srv.request.stamp = _timeUs;
@@ -48,14 +48,14 @@ uint32_t audioInterface_getBufferTime(ros::NodeHandle& _n, int64_t _uid) {
 	return 0;
 }
 
-static std::string p_channelToPlay = "/audio/speaker";
+static etk::String p_channelToPlay = "/audio/speaker";
 static int32_t p_sampleRate = 48000;
 static int32_t p_nbChannels = 2;
 static int32_t p_frequency = 440;
 
 static int32_t baseDataSize = 0;
 static double phase = 0.0;
-std::vector<uint8_t> channelMap;
+etk::Vector<uint8_t> channelMap;
 static ros::Publisher stream;
 
 ros::Time nextFrame;
@@ -81,7 +81,7 @@ void onTimer(const ros::TimerEvent& _timer) {
 	// Set the format of flow
 	msg.channelFormat = audio_msg::AudioBuffer::FORMAT_INT16;
 	
-	std::vector<int16_t> data;
+	etk::Vector<int16_t> data;
 	data.resize(baseDataSize*channelMap.size());
 	double baseCycle = 2.0*M_PI/(double)p_sampleRate * (double)p_frequency;
 	for (int32_t iii=0; iii<data.size()/channelMap.size(); iii++) {
@@ -149,19 +149,19 @@ int main(int _argc, char **_argv) {
 	
 	
 	if (p_nbChannels == 1) {
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_CENTER);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_CENTER);
 	} else if (p_nbChannels == 2) {
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
 	} else if (p_nbChannels == 3) {
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_CENTER);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_CENTER);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
 	} else if (p_nbChannels == 4) {
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_REAR_LEFT);
-		channelMap.push_back(audio_msg::AudioBuffer::CHANNEL_REAR_RIGHT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_LEFT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_FRONT_RIGHT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_REAR_LEFT);
+		channelMap.pushBack(audio_msg::AudioBuffer::CHANNEL_REAR_RIGHT);
 	} else {
 		ROS_ERROR("nb chnnale supported error : %d not in [1,2,3,4]", p_nbChannels);
 		exit(-1);

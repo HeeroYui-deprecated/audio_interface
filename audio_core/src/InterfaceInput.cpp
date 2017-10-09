@@ -13,8 +13,8 @@
 #include <boost/thread.hpp>
 
 appl::InterfaceInput::InterfaceInput(std11::shared_ptr<audio::river::Manager> _manager,
-                                     const std::string& _input,
-                                     const std::string& _publisher,
+                                     const etk::String& _input,
+                                     const etk::String& _publisher,
                                      bool _feedback) :
   m_manager(_manager) {
 	ros::NodeHandle nodeHandlePrivate("~");
@@ -23,9 +23,9 @@ appl::InterfaceInput::InterfaceInput(std11::shared_ptr<audio::river::Manager> _m
 	                                                               boost::bind(&InterfaceInput::onConnect, this, _1),
 	                                                               boost::bind(&InterfaceInput::onDisConnect, this, _1));
 	//Set stereo output:
-	std::vector<audio::channel> channelMap;
-	channelMap.push_back(audio::channel_frontLeft);
-	channelMap.push_back(audio::channel_frontRight);
+	etk::Vector<audio::channel> channelMap;
+	channelMap.pushBack(audio::channel_frontLeft);
+	channelMap.pushBack(audio::channel_frontRight);
 	if (_feedback == false) {
 		m_interface = m_manager->createInput(48000,
 		                                     channelMap,
@@ -71,7 +71,7 @@ void appl::InterfaceInput::onDataReceived(const void* _data,
                                           size_t _nbChunk,
                                           enum audio::format _format,
                                           uint32_t _frequency,
-                                          const std::vector<audio::channel>& _map) {
+                                          const etk::Vector<audio::channel>& _map) {
 	if (_format != audio::format_int16) {
 		APPL_ERROR("call wrong type ... (need int16_t)");
 	}

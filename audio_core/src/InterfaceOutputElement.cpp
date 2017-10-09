@@ -17,7 +17,7 @@ appl::InterfaceOutputElement::InterfaceOutputElement(const std11::shared_ptr<aud
 }
 
 appl::InterfaceOutputElement::~InterfaceOutputElement() {
-	std11::unique_lock<std::mutex> lock(m_mutex);
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	APPL_INFO("Remove interfaces (start)");
 	m_interface->stop();
 	m_interface.reset();
@@ -25,8 +25,8 @@ appl::InterfaceOutputElement::~InterfaceOutputElement() {
 	APPL_INFO("Remove interfaces (done)");
 }
 
-void appl::InterfaceOutputElement::onTopicMessage(const std::string& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
-	std11::unique_lock<std::mutex> lock(m_mutex);
+void appl::InterfaceOutputElement::onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
+	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	if (m_interface != nullptr) {
 		APPL_VERBOSE("Write data : " << m_id << " size= " << _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
 		m_interface->write(&_msg->data[0], _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
@@ -34,7 +34,7 @@ void appl::InterfaceOutputElement::onTopicMessage(const std::string& _streamName
 		return;
 	}
 	audio::format format = audio::convertFormat(_msg->channelFormat);
-	std::vector<enum audio::channel> map = audio::convertChannel(_msg->channelMap);
+	etk::Vector<enum audio::channel> map = audio::convertChannel(_msg->channelMap);
 	// no interface found => create a new one
 	m_interface = m_manager->createOutput(_msg->frequency,
 	                                      map,
@@ -50,7 +50,7 @@ void appl::InterfaceOutputElement::onTopicMessage(const std::string& _streamName
 	m_interface->write(&_msg->data[0], _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
 }
 
-void appl::InterfaceOutputElement::onStatus(const std::string& _origin, const std::string& _status, int32_t _iii) {
+void appl::InterfaceOutputElement::onStatus(const etk::String& _origin, const etk::String& _status, int32_t _iii) {
 	APPL_VERBOSE("status event : " << _origin << " status=" << _status << " on i=" << _iii);
 	m_nbConsecutiveUnderflow++;
 }

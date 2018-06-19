@@ -37,8 +37,8 @@ appl::InterfaceInput::InterfaceInput(std11::shared_ptr<audio::river::Manager> _m
 		                                        audio::format_int16,
 		                                        _input);
 	}
-	if(m_interface == nullptr) {
-		APPL_ERROR("nullptr interface");
+	if(m_interface == null) {
+		APPL_ERROR("null interface");
 		return;
 	}
 	// set callback mode ...
@@ -53,8 +53,8 @@ appl::InterfaceInput::InterfaceInput(std11::shared_ptr<audio::river::Manager> _m
 	m_interface->start();
 }
 appl::InterfaceInput::~InterfaceInput() {
-	if(m_interface == nullptr) {
-		APPL_ERROR("nullptr interface");
+	if(m_interface == null) {
+		APPL_ERROR("null interface");
 		return;
 	}
 	m_interface->stop();

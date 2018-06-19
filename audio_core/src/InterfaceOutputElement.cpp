@@ -27,7 +27,7 @@ appl::InterfaceOutputElement::~InterfaceOutputElement() {
 
 void appl::InterfaceOutputElement::onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
 	std11::unique_lock<ethread::Mutex> lock(m_mutex);
-	if (m_interface != nullptr) {
+	if (m_interface != null) {
 		APPL_VERBOSE("Write data : " << m_id << " size= " << _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
 		m_interface->write(&_msg->data[0], _msg->data.size()/m_interface->getInterfaceFormat().getChunkSize());
 		m_nbConsecutiveUnderflow = 0;
@@ -40,8 +40,8 @@ void appl::InterfaceOutputElement::onTopicMessage(const etk::String& _streamName
 	                                      map,
 	                                      format,
 	                                      _streamName);
-	if(m_interface == nullptr) {
-		APPL_ERROR("nullptr interface");
+	if(m_interface == null) {
+		APPL_ERROR("null interface");
 		return;
 	}
 	m_interface->setReadwrite();

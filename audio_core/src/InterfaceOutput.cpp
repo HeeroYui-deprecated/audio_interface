@@ -26,7 +26,7 @@ appl::InterfaceOutput::~InterfaceOutput() {
 void appl::InterfaceOutput::onTopicMessage(const audio_msg::AudioBuffer::ConstPtr& _msg) {
 	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	for (size_t iii=0; iii<m_list.size(); ++iii) {
-		if (m_list[iii] == nullptr) {
+		if (m_list[iii] == null) {
 			continue;
 		}
 		if (m_list[iii]->getName() == _msg->sourceName) {
@@ -37,7 +37,7 @@ void appl::InterfaceOutput::onTopicMessage(const audio_msg::AudioBuffer::ConstPt
 	}
 	// new interface name:
 	std11::shared_ptr<appl::InterfaceOutputManager> newInterface = std11::make_shared<appl::InterfaceOutputManager>(_msg->sourceName);
-	if (newInterface == nullptr) {
+	if (newInterface == null) {
 		APPL_ERROR("can not generate new interface element...");
 		return;
 	}
@@ -49,7 +49,7 @@ void appl::InterfaceOutput::onTimer(const ros::TimerEvent& _timer) {
 	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	etk::Vector<std11::shared_ptr<appl::InterfaceOutputManager> >::iterator it = m_list.begin();
 	while (it != m_list.end()) {
-		if (*it == nullptr) {
+		if (*it == null) {
 			it = m_list.erase(it);
 			continue;
 		}

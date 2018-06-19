@@ -32,7 +32,7 @@ bool f_create(audio_core::create::Request& _req,
 	                                                   audio::convertFormat(_req.channelFormat),
 	                                                   _req.frequency,
 	                                                   audio::convertChannel(_req.channelMap));
-	if (newInterface == nullptr) {
+	if (newInterface == null) {
 		_res.handle = -1;
 		return false;
 	}
@@ -51,7 +51,7 @@ bool f_remove(audio_core::remove::Request& _req,
 	std11::shared_ptr<appl::InterfaceOutput> interface;
 	mutex.lock();
 	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
-		if (g_listInterafceOut[iii] == nullptr) {
+		if (g_listInterafceOut[iii] == null) {
 			continue;
 		}
 		if (g_listInterafceOut[iii]->getId() == _req.handle) {
@@ -63,7 +63,7 @@ bool f_remove(audio_core::remove::Request& _req,
 		}
 	}
 	mutex.unlock();
-	if (interface == nullptr) {
+	if (interface == null) {
 		APPL_ERROR("remove : [" << _req.handle << "] Can not remove this ==> already removed.");
 		return false;
 	}
@@ -84,7 +84,7 @@ bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
 	mutex.lock();
 	// Find the handle:
 	for(size_t iii=0; iii<g_listInterafceOut.size(); ++iii) {
-		if (g_listInterafceOut[iii] == nullptr) {
+		if (g_listInterafceOut[iii] == null) {
 			continue;
 		}
 		if (g_listInterafceOut[iii]->getId() == _req.handle) {
@@ -93,7 +93,7 @@ bool f_getBufferTime(audio_core::getBufferTime::Request& _req,
 		}
 	}
 	mutex.unlock();
-	if (interface == nullptr) {
+	if (interface == null) {
 		APPL_ERROR("getBufferTime : [" << _req.handle << "] Can not get time ==> handle does not exist...");
 		return false;
 	}

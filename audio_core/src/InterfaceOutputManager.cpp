@@ -27,7 +27,7 @@ appl::InterfaceOutputManager::~InterfaceOutputManager() {
 void appl::InterfaceOutputManager::onTopicMessage(const etk::String& _streamName, const audio_msg::AudioBuffer::ConstPtr& _msg) {
 	std11::unique_lock<ethread::Mutex> lock(m_mutex);
 	for (size_t iii=0; iii<m_elementList.size(); ++iii) {
-		if (m_elementList[iii] == nullptr) {
+		if (m_elementList[iii] == null) {
 			continue;
 		}
 		if(m_elementList[iii]->getId() == _msg->sourceId) {
@@ -37,8 +37,8 @@ void appl::InterfaceOutputManager::onTopicMessage(const etk::String& _streamName
 	}
 	// no interface found => create a new one
 	std11::shared_ptr<appl::InterfaceOutputElement> interface = std11::make_shared<appl::InterfaceOutputElement>(m_manager, _msg->sourceId);
-	if(interface == nullptr) {
-		APPL_ERROR("nullptr interface");
+	if(interface == null) {
+		APPL_ERROR("null interface");
 		return;
 	}
 	m_elementList.pushBack(interface);
@@ -50,7 +50,7 @@ bool appl::InterfaceOutputManager::onTimer() {
 	etk::Vector<std11::shared_ptr<appl::InterfaceOutputElement> >::iterator it = m_elementList.begin();
 	bool oneElementRemoved = false;
 	while (it != m_elementList.end()) {
-		if (*it == nullptr) {
+		if (*it == null) {
 			it = m_elementList.erase(it);
 			continue;
 		}
